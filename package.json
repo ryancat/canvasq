@@ -1,0 +1,14 @@
+{
+  "name": "canvasq",
+  "version": "0.0.1",
+  "description": "A canvas query library. Query drawn elements in canvas like DOM elements!",
+  "main": "canvasq.js",
+  "repository": "https://github.com/ryancat/canvasq.git",
+  "author": "Ryan Chen <xryanchen@gmail.com>",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "webpack": "^4.12.0",
+    "webpack-cli": "^3.0.8"
+  }
+}
