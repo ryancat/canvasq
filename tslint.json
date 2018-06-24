@@ -19,7 +19,10 @@
                 "timeEnd",
                 "trace"
             ]
-        }
+        },
+        "quotemark": [true, "single", "avoid-escape", "avoid-template"],
+        "semicolon": [true, "never"],
+        "align": [false]
     },
     "jsRules": {
         "max-line-length": {

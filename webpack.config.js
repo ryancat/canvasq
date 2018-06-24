@@ -11,7 +11,7 @@ module.exports = {
     path: path.resolve(__dirname, 'bundles'),
     filename: '[name].js',
     libraryTarget: 'umd',
-    library: 'myLib',
+    library: 'canvasq',
     umdNamedDefine: true
   },
   
