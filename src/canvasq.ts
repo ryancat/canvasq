@@ -1,28 +1,20 @@
-interface ICanvasqElement {
-  
-}
-
-interface ICanvasqElementCollection {
-
-}
-
-interface ICanvasqEventInterface extends Event {
-
-}
+import CanvasqEvent from './components/CanvasqEvent'
+import CanvasqElement from './components/CanvasqElement'
+import CanvasqElementCollection from './components/CanvasqElementCollection'
 
 interface ICanvasqContext {
-  query: (className: string | void) => CanvasqElement,
-  queryAll: (className: string | void) => CanvasqElementCollection,
-  getState: (stateKey: string) => any,
-  setState: (stateKey: string, stateValue: any) => CanvasqContext,
-  getAttribute: (attributeKey: string) => any,
-  setAttribute: (attributeKey: string, attributeValue: any) => CanvasqContext,
-  addClassName: (...classNames: string[]) => CanvasqContext,
-  removeClassName: (...classNames: string[]) => CanvasqContext,
-  addEventListener: (eventName: string,
-                      callback: (evt: CanvasqEventInterface) => void,
-                      useCapture: boolean) => CanvasqContext,
-  trigger: (eventName: string) => CanvasqContext
+  // query: (className: string | void) => CanvasqElement,
+  // queryAll: (className: string | void) => CanvasqElementCollection,
+  // getState: (stateKey: string) => any,
+  // setState: (stateKey: string, stateValue: any) => CanvasqContext,
+  // getAttribute: (attributeKey: string) => any,
+  // setAttribute: (attributeKey: string, attributeValue: any) => CanvasqContext,
+  // addClassName: (...classNames: string[]) => CanvasqContext,
+  // removeClassName: (...classNames: string[]) => CanvasqContext,
+  // addEventListener: (eventName: string,
+  //                     callback: (evt: CanvasqEventInterface) => void,
+  //                     useCapture: boolean) => CanvasqContext,
+  // trigger: (eventName: string) => CanvasqContext
 }
 
 class CanvasqContext extends CanvasRenderingContext2D implements ICanvasqContext {
