@@ -3,10 +3,11 @@ let canvas = document.querySelector('.stage')
 canvasq = canvasq.default
 let context = canvasq(canvas)
 
-// context.fillStyle = '#c1c1c1'
-// context.fillRect(20, 20, 100, 100)
+context.fillStyle = '#c1c1c1'
+context.rect(20, 20, 100, 100)
+context.fill()
 
-context.strokeStyle = '#b1b1b1'
+context.strokeStyle = '#ff0000'
 context.lineWidth = 2
 
 context.beginPath()
