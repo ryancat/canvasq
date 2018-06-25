@@ -1,15 +1,7 @@
+import { IAnyFunction, IAnyObject } from '../interfaces/common'
 import CanvasqElement from './CanvasqElement'
 import CanvasqElementCollection from './CanvasqElementCollection'
 import CanvasqEvent from './CanvasqEvent'
-import {IAnyFunction} from '../interfaces/common'
-
-// interface CanvasRenderingContext2D {
-//   [key: string]: any
-// }
-
-// interface CanvasqContext {
-//   [key: string]: any
-// }
 
 // Interfaces
 interface ICanvasqContext {
@@ -17,12 +9,17 @@ interface ICanvasqContext {
   // queryAll: (className: string | undefined) => CanvasqElementCollection
 }
 
-
+interface ICanvasqContextEventData {
+  propKey: string,
+  propVal: any[]
+}
 
 enum CanvasqContextEvent {
   ContextDrawn,
-  ContextUpdate,
+  ContextPathUpdate,
 }
+
+const isDebugMode = true
 
 /**
  * The CanvasqContext is a wrapper on top of CanvasRenderingContext2D
@@ -36,7 +33,7 @@ export default class CanvasqContext implements ICanvasqContext {
    * A hidden canvas that renders different colors for different
    * elements drawn on the main canvas
    */
-  private canvas: HTMLCanvasElement
+  private hiddenCanvas: HTMLCanvasElement
   private rootCanvasqElementCollection: CanvasqElementCollection
   private eventMap: {[key: string]: IAnyFunction[]}
 
@@ -47,13 +44,18 @@ export default class CanvasqContext implements ICanvasqContext {
     }
 
     this.context = context
-    this.canvas = document.createElement('canvas')
+    this.hiddenCanvas = document.createElement('canvas')
     this.rootCanvasqElementCollection = new CanvasqElementCollection()
     this.eventMap = {}
 
-    this.addHooksToContext()
+    this.initHooks()
     // this.initDelegateCanvas(canvas)
     this.initHiddenCanvas()
+
+    if (isDebugMode) {
+      document.body.appendChild(this.hiddenCanvas)
+    }
+
     this.listen()
   }
 
@@ -63,9 +65,10 @@ export default class CanvasqContext implements ICanvasqContext {
 
   private listen() {
     this.on(CanvasqContextEvent.ContextDrawn, this.handleContextDrawn.bind(this))
+    this.on(CanvasqContextEvent.ContextPathUpdate, this.handleContextPathUpdate.bind(this))
   }
 
-  private fire(eventName: CanvasqContextEvent, eventData?: any) {
+  private fire(eventName: CanvasqContextEvent, eventData?: ICanvasqContextEventData) {
     const eventCallbacks: IAnyFunction[] = this.eventMap[eventName]
     if (eventCallbacks && eventCallbacks.length) {
       eventCallbacks.forEach((eventCallback) => eventCallback(eventData))
@@ -79,43 +82,149 @@ export default class CanvasqContext implements ICanvasqContext {
     }
   }
 
-  private handleContextDrawn() {
-    console.log('something drawn')
+  private executeOnContext(methodName: string, mathodArgs: any[]) {
+    // Need to update path on the hidden canvas as well
+    const context: IAnyObject | null = this.hiddenCanvas.getContext('2d')
+    if (!context || !context[methodName] || typeof context[methodName] !== 'function') {
+      throw new Error(`hidden context has no path methods: ${methodName}`)
+    }
+
+    // TODO: set stroke and fill style based on hash value
+    const r = Math.floor(Math.random() * 255)
+    const g = Math.floor(Math.random() * 255)
+    const b = Math.floor(Math.random() * 255)
+    context.fillStyle = `rgba(${r}, ${g}, ${b}, 1)`
+    context.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`
+    return context[methodName].apply(context, mathodArgs)
   }
 
-  private addMonitorWrap(functionToMonitor: IAnyFunction,
-    eventName: CanvasqContextEvent,
-    context: object): IAnyFunction {
-    const that = this
-    context = context || null
+  private handleContextDrawn(data: ICanvasqContextEventData) {
+    console.log(this.context, data)
+    this.executeOnContext(data.propKey, data.propVal)
+  }
 
-    return function() {
-      that.fire(eventName)
+  private handleContextPathUpdate(data: ICanvasqContextEventData) {
+    console.log(this.context, data)
+    this.executeOnContext(data.propKey, data.propVal)
+  }
+
+  private addMonitorWrapToFunction(
+    propKey: string,
+    eventName: CanvasqContextEvent,
+    context: IAnyObject): CanvasqContext {
+    const that = this
+    const functionToMonitor = context[propKey]
+
+    if (typeof functionToMonitor !== 'function') {
+      throw new Error('cannot monitor non-function item')
+    }
+
+    context[propKey] = function() {
+      that.fire(eventName, { propKey, propVal: Array.prototype.slice.call(arguments) })
       return functionToMonitor.apply(context, arguments)
     }
+
+    return this
   }
+
+  // private addMonitorWrapToProperty(
+  //   propKey: string,
+  //   eventName: CanvasqContextEvent,
+  //   context: IAnyObject): CanvasqContext {
+  //   const that = this
+  //   let propValue = context[propKey]
+
+  //   if (!propValue) {
+  //     // No such property
+  //     throw new Error('no such property to monitor')
+  //   }
+
+  //   Object.defineProperty(context, propKey, {
+  //     get() {
+  //       return propValue
+  //     },
+
+  //     set(value) {
+  //       that.fire(CanvasqContextEvent.ContextUpdate, {propKey, value})
+  //       propValue = value
+  //     },
+  //   })
+
+  //   return this
+  // }
+
+  // private addMonitorWrap(
+  //   propKey: string,
+  //   eventName: CanvasqContextEvent,
+  //   context: IAnyObject): CanvasqContext {
+  //   if (typeof context[propKey] === 'function') {
+  //     return this.addMonitorWrapToFunction(propKey, eventName, context)
+  //   } else {
+  //     return this.addMonitorWrapToProperty(propKey, eventName, context)
+  //   }
+  // }
 
   /**
    * Add hooks to context we are monitoring
    * When the context draw something, we need to capture that and store
    * all necessary information in canvasqContext
    */
-  private addHooksToContext(): CanvasqContext {
-    this.context.fill = this.addMonitorWrap(this.context.fill, CanvasqContextEvent.ContextDrawn, this.context)
-    this.context.fillRect = this.addMonitorWrap(this.context.fillRect, CanvasqContextEvent.ContextDrawn, this.context)
-    this.context.fillText = this.addMonitorWrap(this.context.fillText, CanvasqContextEvent.ContextDrawn, this.context)
-    this.context.stroke = this.addMonitorWrap(this.context.stroke, CanvasqContextEvent.ContextDrawn, this.context)
-    this.context.strokeRect = this.addMonitorWrap(
-      this.context.strokeRect, CanvasqContextEvent.ContextDrawn, this.context)
-    this.context.strokeText = this.addMonitorWrap(
-      this.context.strokeText, CanvasqContextEvent.ContextDrawn, this.context)
+  private initHooks(): CanvasqContext {
+    this.addHooksToFunctions([
+      'fill',
+      'fillRect',
+      'fillText',
+      'stroke',
+      'strokeRect',
+      'strokeText',
+      'clearRect',
+      'drawImage',
+      'putImageData',
+    ], CanvasqContextEvent.ContextDrawn)
+
+    this.addHooksToFunctions([
+      'beginPath',
+      'closePath',
+      'clip',
+      'moveTo',
+      'lineTo',
+      'quadraticCurveTo',
+      'bezierCurveTo',
+      'arcTo',
+      'rect',
+      'arc',
+    ], CanvasqContextEvent.ContextPathUpdate)
 
     return this
   }
 
+  private addHooksToFunctions(functionKeys: string[], eventName: CanvasqContextEvent): CanvasqContext {
+    for (const key of functionKeys) {
+      this.addMonitorWrapToFunction(key, eventName, this.context)
+    }
+    return this
+  }
+
+  // private addHooksToStateAttributes(): CanvasqContext {
+  //   for (const key in this.context) {
+  //     // TODO: the key are not the own properties for this.context
+  //     if (Object.prototype.hasOwnProperty.call(this.context, key)) {
+  //       const descriptor: PropertyDescriptor | undefined = Object.getOwnPropertyDescriptor(this.context, key)
+  //       if (!descriptor || !descriptor.writable) {
+  //         continue
+  //       }
+
+  //       // Only monitor the state if it's writable
+  //       this.addMonitorWrap(key, CanvasqContextEvent.ContextDrawn, this.context)
+  //     }
+  //   }
+
+  //   return this
+  // }
+
   private initHiddenCanvas(): CanvasqContext {
-    this.canvas.width = this.context.canvas.width
-    this.canvas.height = this.context.canvas.height
+    this.hiddenCanvas.width = this.context.canvas.width
+    this.hiddenCanvas.height = this.context.canvas.height
     return this
   }
 }

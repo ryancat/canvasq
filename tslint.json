@@ -24,7 +24,8 @@
         "semicolon": [true, "never"],
         "align": [false],
         "no-empty-interface": [false],
-        "only-arrow-functions": [false]
+        "only-arrow-functions": [false],
+        "callable-types": [false]
     },
     "jsRules": {
         "max-line-length": {
