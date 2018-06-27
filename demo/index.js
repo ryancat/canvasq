@@ -1,8 +1,9 @@
 let canvas = document.querySelector('.stage')
 // let context = canvas.getContext('2d')
 canvasq = canvasq.default
-let context = canvasq(canvas)
+canvasq.watch(canvas)
 
+let context = canvas.getContext('2d')
 context.fillStyle = '#c1c1c1'
 context.rect(20, 20, 100, 100)
 context.fill()

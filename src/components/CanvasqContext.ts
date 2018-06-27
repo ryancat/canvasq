@@ -6,6 +6,7 @@ import CanvasqEvent from './CanvasqEvent'
 // Interfaces
 interface ICanvasqContext {
   query: (className: string) => CanvasqElement | null,
+  destroy: () => void,
   // queryAll: (className: string | undefined) => CanvasqElementCollection
 }
 
@@ -21,6 +22,31 @@ enum CanvasqContextEvent {
 
 const isDebugMode = true
 
+const listOfDrawFunctions = [
+  'fill',
+  'fillRect',
+  'fillText',
+  'stroke',
+  'strokeRect',
+  'strokeText',
+  'clearRect',
+  'drawImage',
+  'putImageData',
+]
+
+const listOfPathUpdateFunctions = [
+  'beginPath',
+  'closePath',
+  'clip',
+  'moveTo',
+  'lineTo',
+  'quadraticCurveTo',
+  'bezierCurveTo',
+  'arcTo',
+  'rect',
+  'arc',
+]
+
 /**
  * The CanvasqContext is a wrapper on top of CanvasRenderingContext2D
  */
@@ -34,17 +60,21 @@ export default class CanvasqContext implements ICanvasqContext {
    * elements drawn on the main canvas
    */
   private hiddenCanvas: HTMLCanvasElement
+  private hiddenContext: CanvasRenderingContext2D
   private rootCanvasqElementCollection: CanvasqElementCollection
   private eventMap: {[key: string]: IAnyFunction[]}
 
   constructor(canvas: HTMLCanvasElement) {
+    this.hiddenCanvas = document.createElement('canvas')
+
     const context: CanvasRenderingContext2D | null = canvas.getContext('2d')
-    if (!context) {
+    const hiddenContext: CanvasRenderingContext2D | null = this.hiddenCanvas.getContext('2d')
+    if (!context || !hiddenContext) {
       throw new Error('canvas has no CanvasRenderingContext2D context')
     }
 
     this.context = context
-    this.hiddenCanvas = document.createElement('canvas')
+    this.hiddenContext = hiddenContext
     this.rootCanvasqElementCollection = new CanvasqElementCollection()
     this.eventMap = {}
 
@@ -63,8 +93,13 @@ export default class CanvasqContext implements ICanvasqContext {
     return this.rootCanvasqElementCollection.query(className)
   }
 
+  public destroy(): void {
+    this.removeHooksFromFunctions(listOfDrawFunctions)
+    this.removeHooksFromFunctions(listOfPathUpdateFunctions)
+  }
+
   private listen() {
-    this.on(CanvasqContextEvent.ContextDrawn, this.handleContextDrawn.bind(this))
+    this.on(CanvasqContextEvent.ContextDrawn, this.handleContextDraw.bind(this))
     this.on(CanvasqContextEvent.ContextPathUpdate, this.handleContextPathUpdate.bind(this))
   }
 
@@ -82,9 +117,9 @@ export default class CanvasqContext implements ICanvasqContext {
     }
   }
 
-  private executeOnContext(methodName: string, mathodArgs: any[]) {
+  private executeOnHiddenContext(methodName: string, mathodArgs: any[]) {
     // Need to update path on the hidden canvas as well
-    const context: IAnyObject | null = this.hiddenCanvas.getContext('2d')
+    const context: IAnyObject = this.hiddenContext
     if (!context || !context[methodName] || typeof context[methodName] !== 'function') {
       throw new Error(`hidden context has no path methods: ${methodName}`)
     }
@@ -98,20 +133,44 @@ export default class CanvasqContext implements ICanvasqContext {
     return context[methodName].apply(context, mathodArgs)
   }
 
-  private handleContextDrawn(data: ICanvasqContextEventData) {
-    console.log(this.context, data)
-    this.executeOnContext(data.propKey, data.propVal)
+  private handleContextDraw(data: ICanvasqContextEventData) {
+    // We need to draw with current context state
+    this.copyContextState()
+
+    const methodName = data.propKey
+    const args = data.propVal
+    this.executeOnHiddenContext(methodName, args)
   }
 
   private handleContextPathUpdate(data: ICanvasqContextEventData) {
-    console.log(this.context, data)
-    this.executeOnContext(data.propKey, data.propVal)
+    const methodName = data.propKey
+    const args = data.propVal
+    this.executeOnHiddenContext(methodName, args)
+  }
+
+  private copyContextState(): ICanvasqContext {
+    const context: IAnyObject = this.context
+    const hiddenContext: IAnyObject = this.hiddenContext
+    for (const key in context) {
+      if ((context.hasOwnProperty(key) || context.__proto__.hasOwnProperty(key)) &&
+      typeof context[key] !== 'function') {
+        const descriptor: PropertyDescriptor | undefined = Object.getOwnPropertyDescriptor(hiddenContext.__proto__, key)
+        if (!descriptor || !descriptor.set) {
+          continue
+        }
+
+        // Only monitor the state if it's writable
+        hiddenContext[key] = context[key]
+      }
+    }
+
+    return this
   }
 
   private addMonitorWrapToFunction(
     propKey: string,
-    eventName: CanvasqContextEvent,
-    context: IAnyObject): CanvasqContext {
+    context: IAnyObject,
+    eventName: CanvasqContextEvent): CanvasqContext {
     const that = this
     const functionToMonitor = context[propKey]
 
@@ -124,6 +183,14 @@ export default class CanvasqContext implements ICanvasqContext {
       return functionToMonitor.apply(context, arguments)
     }
 
+    return this
+  }
+
+  private removeMonitorWrapFromFunction(
+    propKey: string,
+    context: IAnyObject,
+    eventName?: CanvasqContextEvent): CanvasqContext {
+    delete context[propKey]
     return this
   }
 
@@ -170,37 +237,21 @@ export default class CanvasqContext implements ICanvasqContext {
    * all necessary information in canvasqContext
    */
   private initHooks(): CanvasqContext {
-    this.addHooksToFunctions([
-      'fill',
-      'fillRect',
-      'fillText',
-      'stroke',
-      'strokeRect',
-      'strokeText',
-      'clearRect',
-      'drawImage',
-      'putImageData',
-    ], CanvasqContextEvent.ContextDrawn)
-
-    this.addHooksToFunctions([
-      'beginPath',
-      'closePath',
-      'clip',
-      'moveTo',
-      'lineTo',
-      'quadraticCurveTo',
-      'bezierCurveTo',
-      'arcTo',
-      'rect',
-      'arc',
-    ], CanvasqContextEvent.ContextPathUpdate)
-
+    this.addHooksToFunctions(listOfDrawFunctions, CanvasqContextEvent.ContextDrawn)
+    this.addHooksToFunctions(listOfPathUpdateFunctions, CanvasqContextEvent.ContextPathUpdate)
     return this
   }
 
   private addHooksToFunctions(functionKeys: string[], eventName: CanvasqContextEvent): CanvasqContext {
     for (const key of functionKeys) {
-      this.addMonitorWrapToFunction(key, eventName, this.context)
+      this.addMonitorWrapToFunction(key, this.context, eventName)
+    }
+    return this
+  }
+
+  private removeHooksFromFunctions(functionKeys: string[], eventName?: CanvasqContextEvent): CanvasqContext {
+    for (const key of functionKeys) {
+      this.removeMonitorWrapFromFunction(key, this.context, eventName)
     }
     return this
   }
