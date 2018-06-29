@@ -1,27 +1,17 @@
-import { IAnyFunction, IAnyObject } from '../interfaces/common'
 import CanvasqElement from './CanvasqElement'
 import CanvasqElementCollection from './CanvasqElementCollection'
 import CanvasqEvent from './CanvasqEvent'
-
-// Interfaces
-interface ICanvasqContext {
-  query: (className: string) => CanvasqElement | null,
-  destroy: () => void,
-  // queryAll: (className: string | undefined) => CanvasqElementCollection
-}
-
-interface ICanvasqContextEventData {
-  propKey: string,
-  propVal: any[]
-}
-
-enum CanvasqContextEvent {
-  ContextDrawn,
-  ContextPathUpdate,
-}
+import {
+  CanvasqEventType,
+  IAnyFunction,
+  IAnyObject,
+  ICanvasqContext,
+  ICanvasqContextEventData,
+  ICanvasqElement,
+  IRgb,
+} from './types'
 
 const isDebugMode = true
-
 const listOfDrawFunctions = [
   'fill',
   'fillRect',
@@ -52,6 +42,17 @@ const listOfPathUpdateFunctions = [
  */
 export default class CanvasqContext implements ICanvasqContext {
   /**
+   * Convert a canvasq element key to rgb values
+   * @param key the canvasqElementKey
+   * @return rgb values map
+   */
+  public static convertElementKeyToRgb(key: string): IRgb {
+    return key.split('-').map((val: string): number => {
+      return parseInt(val, 10)
+    })
+  }
+
+  /**
    * The original canvas context with hooks to canvasqContext
    */
   public context: CanvasRenderingContext2D
@@ -63,6 +64,8 @@ export default class CanvasqContext implements ICanvasqContext {
   private hiddenContext: CanvasRenderingContext2D
   private rootCanvasqElementCollection: CanvasqElementCollection
   private eventMap: {[key: string]: IAnyFunction[]}
+  private canvasqElementMap: {[key: string]: CanvasqElement}
+  private canvasqElementCount: number
 
   constructor(canvas: HTMLCanvasElement) {
     this.hiddenCanvas = document.createElement('canvas')
@@ -77,6 +80,8 @@ export default class CanvasqContext implements ICanvasqContext {
     this.hiddenContext = hiddenContext
     this.rootCanvasqElementCollection = new CanvasqElementCollection()
     this.eventMap = {}
+    this.canvasqElementMap = {}
+    this.canvasqElementCount = 0
 
     this.initHooks()
     // this.initDelegateCanvas(canvas)
@@ -89,8 +94,12 @@ export default class CanvasqContext implements ICanvasqContext {
     this.listen()
   }
 
-  public query(className: string): CanvasqElement | null {
+  public query(className: string): ICanvasqElement | null {
     return this.rootCanvasqElementCollection.query(className)
+  }
+
+  public queryAll(className?: string): CanvasqElementCollection {
+    return this.rootCanvasqElementCollection.queryAll(className)
   }
 
   public destroy(): void {
@@ -98,38 +107,48 @@ export default class CanvasqContext implements ICanvasqContext {
     this.removeHooksFromFunctions(listOfPathUpdateFunctions)
   }
 
-  private listen() {
-    this.on(CanvasqContextEvent.ContextDrawn, this.handleContextDraw.bind(this))
-    this.on(CanvasqContextEvent.ContextPathUpdate, this.handleContextPathUpdate.bind(this))
+  private getNextElementKey(): string {
+    const highMultiply = 255 * 255
+    const lowMultiply = 255
+    const count: number = this.canvasqElementCount++
+    const r = Math.floor(count / highMultiply)
+    const g = Math.floor((count - r * highMultiply) / lowMultiply)
+    const b = (count - r * highMultiply - g * lowMultiply)
+
+    return `${r}-${g}-${b}`
   }
 
-  private fire(eventName: CanvasqContextEvent, eventData?: ICanvasqContextEventData) {
+  private listen() {
+    this.on(CanvasqEventType.ContextDrawn, this.handleContextDraw.bind(this))
+    this.on(CanvasqEventType.ContextPathUpdate, this.handleContextPathUpdate.bind(this))
+  }
+
+  private fire(eventName: CanvasqEventType, eventData?: ICanvasqContextEventData): CanvasqContext {
     const eventCallbacks: IAnyFunction[] = this.eventMap[eventName]
     if (eventCallbacks && eventCallbacks.length) {
       eventCallbacks.forEach((eventCallback) => eventCallback(eventData))
     }
+
+    return this
   }
 
-  private on(eventName: CanvasqContextEvent, callback: IAnyFunction) {
+  private on(eventName: CanvasqEventType, callback: IAnyFunction): CanvasqContext {
     this.eventMap[eventName] = this.eventMap[eventName] || []
     if (this.eventMap[eventName].indexOf(callback) === -1) {
       this.eventMap[eventName].push(callback)
     }
+
+    return this
   }
 
-  private executeOnHiddenContext(methodName: string, mathodArgs: any[]) {
+  private executeOnHiddenContext(methodName: string, mathodArgs: any[], contextState?: object) {
     // Need to update path on the hidden canvas as well
     const context: IAnyObject = this.hiddenContext
     if (!context || !context[methodName] || typeof context[methodName] !== 'function') {
       throw new Error(`hidden context has no path methods: ${methodName}`)
     }
 
-    // TODO: set stroke and fill style based on hash value
-    const r = Math.floor(Math.random() * 255)
-    const g = Math.floor(Math.random() * 255)
-    const b = Math.floor(Math.random() * 255)
-    context.fillStyle = `rgba(${r}, ${g}, ${b}, 1)`
-    context.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`
+    this.copyContextState(contextState)
     return context[methodName].apply(context, mathodArgs)
   }
 
@@ -139,7 +158,18 @@ export default class CanvasqContext implements ICanvasqContext {
 
     const methodName = data.propKey
     const args = data.propVal
-    this.executeOnHiddenContext(methodName, args)
+
+    // Create canvasq element when draw something
+    // TODO: create canvasq element only when it's necessary
+    // Should allow consumer to manually define grouping
+    const elementKey = this.getNextElementKey()
+    const rgb = CanvasqContext.convertElementKeyToRgb(elementKey)
+    this.canvasqElementMap[elementKey] = new CanvasqElement(elementKey)
+
+    this.executeOnHiddenContext(methodName, args, {
+      fillStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,
+      strokeStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,
+    })
   }
 
   private handleContextPathUpdate(data: ICanvasqContextEventData) {
@@ -148,19 +178,19 @@ export default class CanvasqContext implements ICanvasqContext {
     this.executeOnHiddenContext(methodName, args)
   }
 
-  private copyContextState(): ICanvasqContext {
-    const context: IAnyObject = this.context
+  private copyContextState(contextState?: IAnyObject): CanvasqContext {
+    contextState = contextState || this.context
     const hiddenContext: IAnyObject = this.hiddenContext
-    for (const key in context) {
-      if ((context.hasOwnProperty(key) || context.__proto__.hasOwnProperty(key)) &&
-      typeof context[key] !== 'function') {
+    for (const key in contextState) {
+      if ((contextState.hasOwnProperty(key) || contextState.__proto__.hasOwnProperty(key)) &&
+      typeof contextState[key] !== 'function') {
         const descriptor: PropertyDescriptor | undefined = Object.getOwnPropertyDescriptor(hiddenContext.__proto__, key)
         if (!descriptor || !descriptor.set) {
           continue
         }
 
         // Only monitor the state if it's writable
-        hiddenContext[key] = context[key]
+        hiddenContext[key] = contextState[key]
       }
     }
 
@@ -170,7 +200,7 @@ export default class CanvasqContext implements ICanvasqContext {
   private addMonitorWrapToFunction(
     propKey: string,
     context: IAnyObject,
-    eventName: CanvasqContextEvent): CanvasqContext {
+    eventName: CanvasqEventType): CanvasqContext {
     const that = this
     const functionToMonitor = context[propKey]
 
@@ -189,7 +219,7 @@ export default class CanvasqContext implements ICanvasqContext {
   private removeMonitorWrapFromFunction(
     propKey: string,
     context: IAnyObject,
-    eventName?: CanvasqContextEvent): CanvasqContext {
+    eventName?: CanvasqEventType): CanvasqContext {
     delete context[propKey]
     return this
   }
@@ -212,7 +242,7 @@ export default class CanvasqContext implements ICanvasqContext {
   //     },
 
   //     set(value) {
-  //       that.fire(CanvasqContextEvent.ContextUpdate, {propKey, value})
+  //       that.fire(CanvasqEventType.ContextUpdate, {propKey, value})
   //       propValue = value
   //     },
   //   })
@@ -237,19 +267,19 @@ export default class CanvasqContext implements ICanvasqContext {
    * all necessary information in canvasqContext
    */
   private initHooks(): CanvasqContext {
-    this.addHooksToFunctions(listOfDrawFunctions, CanvasqContextEvent.ContextDrawn)
-    this.addHooksToFunctions(listOfPathUpdateFunctions, CanvasqContextEvent.ContextPathUpdate)
+    this.addHooksToFunctions(listOfDrawFunctions, CanvasqEventType.ContextDrawn)
+    this.addHooksToFunctions(listOfPathUpdateFunctions, CanvasqEventType.ContextPathUpdate)
     return this
   }
 
-  private addHooksToFunctions(functionKeys: string[], eventName: CanvasqContextEvent): CanvasqContext {
+  private addHooksToFunctions(functionKeys: string[], eventName: CanvasqEventType): CanvasqContext {
     for (const key of functionKeys) {
       this.addMonitorWrapToFunction(key, this.context, eventName)
     }
     return this
   }
 
-  private removeHooksFromFunctions(functionKeys: string[], eventName?: CanvasqContextEvent): CanvasqContext {
+  private removeHooksFromFunctions(functionKeys: string[], eventName?: CanvasqEventType): CanvasqContext {
     for (const key of functionKeys) {
       this.removeMonitorWrapFromFunction(key, this.context, eventName)
     }
@@ -266,7 +296,7 @@ export default class CanvasqContext implements ICanvasqContext {
   //       }
 
   //       // Only monitor the state if it's writable
-  //       this.addMonitorWrap(key, CanvasqContextEvent.ContextDrawn, this.context)
+  //       this.addMonitorWrap(key, CanvasqEventType.ContextDrawn, this.context)
   //     }
   //   }
 

@@ -6,10 +6,6 @@ interface ICanvasq {
   focus: (canvas: HTMLCanvasElement) => CanvasqContext
 }
 
-// export function canvasq(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
-//   return (new CanvasqContext(canvas)).context
-// }
-
 let watchedCanvases: HTMLCanvasElement[] = []
 let canvasqContexts: CanvasqContext[] = []
 

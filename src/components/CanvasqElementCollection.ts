@@ -1,32 +1,20 @@
 import CanvasqElement from './CanvasqElement'
+import {
+  ICanvasqElementCollection,
+} from './types'
 
-interface ICanvasqElementCollection {
-  isEmpty: () => boolean,
-  query: (className: string) => CanvasqElement | null,
-  // queryAll: (className: string | void) => CanvasqElementCollection,
-  // getState: (stateKey: string) => any,
-  // setState: (stateKey: string, stateValue: any) => CanvasqContext,
-  // getAttribute: (attributeKey: string) => any,
-  // setAttribute: (attributeKey: string, attributeValue: any) => CanvasqContext,
-  // addClassName: (...classNames: string[]) => CanvasqContext,
-  // removeClassName: (...classNames: string[]) => CanvasqContext,
-  // addEventListener: (
-  //   eventName: string,
-  //   callback: (evt: CanvasqEventInterface) => void,
-  //   useCapture: boolean) => CanvasqContext
-}
-
-interface ICanvasqElementCollectionMap {
-  [s: string]: CanvasqElementCollection
-}
 
 export default class CanvasqElementCollection extends Array implements ICanvasqElementCollection {
 
-  private cqCollectionMap: ICanvasqElementCollectionMap
+  private cqCollectionMap: {[key: string]: CanvasqElementCollection}
 
   constructor() {
     super()
     this.cqCollectionMap = {}
+  }
+
+  public isEmpty(): boolean {
+    return this.length === 0
   }
 
   public query(className: string): CanvasqElement | null {
@@ -39,8 +27,8 @@ export default class CanvasqElementCollection extends Array implements ICanvasqE
     return cqCollection[0]
   }
 
-  public isEmpty(): boolean {
-    return this.length === 0
+  public queryAll(className?: string): CanvasqElementCollection {
+    return className ? this.cqCollectionMap[className] : this
   }
 }
 

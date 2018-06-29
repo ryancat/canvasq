@@ -1,7 +1,5 @@
-interface ICanvasqEvent {
+import { ICanvasqEvent } from './types'
 
-}
-
-export default class CanvasqEvent extends Event implements ICanvasqEvent {
+export default class CanvasqEvent implements ICanvasqEvent {
 
 }

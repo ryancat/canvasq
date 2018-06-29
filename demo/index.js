@@ -18,7 +18,12 @@ context.moveTo(120, 20)
 context.lineTo(20, 120)
 context.stroke()
 
-
+canvasq
+.focus(canvas)
+.queryAll()
+.on('mouseover', (evt) => {
+  console.log(evt)
+})
 
 // var ctx = canvas.getContext('2d');
 
