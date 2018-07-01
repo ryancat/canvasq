@@ -1,13 +1,12 @@
 import CanvasqElement from './CanvasqElement'
 import CanvasqElementCollection from './CanvasqElementCollection'
-import CanvasqEvent from './CanvasqEvent'
 import {
-  CanvasqEventType,
-  IAnyFunction,
+  CanvasqContextHookType,
   IAnyObject,
   ICanvasqContext,
   ICanvasqContextEventData,
   ICanvasqElement,
+  ICanvasqListeningEvent,
   IRgb,
 } from './types'
 
@@ -63,9 +62,10 @@ export default class CanvasqContext implements ICanvasqContext {
   private hiddenCanvas: HTMLCanvasElement
   private hiddenContext: CanvasRenderingContext2D
   private rootCanvasqElementCollection: CanvasqElementCollection
-  private eventMap: {[key: string]: IAnyFunction[]}
-  private canvasqElementMap: {[key: string]: CanvasqElement}
   private canvasqElementCount: number
+  private isElementQueueDirty: boolean
+  private cachedBfsQueue: Array<CanvasqElement | CanvasqElementCollection>
+  private listeningEvents: ICanvasqListeningEvent[]
 
   constructor(canvas: HTMLCanvasElement) {
     this.hiddenCanvas = document.createElement('canvas')
@@ -78,10 +78,13 @@ export default class CanvasqContext implements ICanvasqContext {
 
     this.context = context
     this.hiddenContext = hiddenContext
-    this.rootCanvasqElementCollection = new CanvasqElementCollection()
-    this.eventMap = {}
-    this.canvasqElementMap = {}
+    this.rootCanvasqElementCollection = new CanvasqElementCollection({
+      canvasqContext: this,
+    })
     this.canvasqElementCount = 0
+    this.isElementQueueDirty = false
+    this.cachedBfsQueue = []
+    this.listeningEvents = []
 
     this.initHooks()
     // this.initDelegateCanvas(canvas)
@@ -90,8 +93,6 @@ export default class CanvasqContext implements ICanvasqContext {
     if (isDebugMode) {
       document.body.appendChild(this.hiddenCanvas)
     }
-
-    this.listen()
   }
 
   public query(className: string): ICanvasqElement | null {
@@ -105,40 +106,129 @@ export default class CanvasqContext implements ICanvasqContext {
   public destroy(): void {
     this.removeHooksFromFunctions(listOfDrawFunctions)
     this.removeHooksFromFunctions(listOfPathUpdateFunctions)
+
+    for (const listeningEvent of this.listeningEvents) {
+      this.context.canvas.removeEventListener(listeningEvent.eventName, listeningEvent.callback)
+    }
   }
+
+  public subscribe(eventName: string): void {
+    if (this.listeningEvents.find((listeningEvent) => listeningEvent.eventName === eventName)) {
+      return
+    }
+
+    const that = this
+    function handleMouseEvent(evt: Event) {
+      // Only support mouse event now
+      if (evt instanceof MouseEvent) {
+        const x = evt.clientX - that.context.canvas.getBoundingClientRect().left
+        const y = evt.clientY - that.context.canvas.getBoundingClientRect().top
+        const [red, green, blue] = that.hiddenContext.getImageData(Math.floor(x), Math.floor(y), 1, 1).data
+        const canvasqElementKey = `${red}-${green}-${blue}`
+        const focusedQueue: Array<CanvasqElement | CanvasqElementCollection> = that.getBfsTraverseQueue().filter((item) => {
+          let willFire = false
+          if (item instanceof CanvasqElement) {
+            willFire = item.key === canvasqElementKey
+          } else if (item instanceof CanvasqElementCollection) {
+            willFire = !!item.cqElementMap[canvasqElementKey]
+          }
+
+          return willFire
+        })
+
+        // Capture phase
+        focusedQueue.forEach((item) => item.fire(eventName, evt, true))
+
+        // Bubble phase
+        focusedQueue.reverse().forEach((item) => item.fire(eventName, evt))
+      }
+    }
+
+    this.context.canvas.addEventListener(eventName, handleMouseEvent)
+
+    this.listeningEvents.push({
+      callback: handleMouseEvent,
+      eventName,
+    })
+  }
+
+  private getBfsTraverseQueue(): Array<CanvasqElement | CanvasqElementCollection> {
+    if (!this.isElementQueueDirty) {
+      return this.cachedBfsQueue
+    }
+
+    const bfsQueue: Array<CanvasqElement | CanvasqElementCollection> = [this.rootCanvasqElementCollection]
+    let iterIndex = 0
+
+    while (iterIndex < bfsQueue.length) {
+      const item = bfsQueue[iterIndex]
+      iterIndex++
+
+      if (!item) {
+        continue
+      }
+
+      // Make sure the item moved to the end of queue, so that the capture and bubble phase fire order is correct
+      if (item instanceof CanvasqElementCollection) {
+        for (const collectionKey in item.cqCollectionMap) {
+          if (item.cqCollectionMap.hasOwnProperty(collectionKey)) {
+            const childCollection: CanvasqElementCollection = item.cqCollectionMap[collectionKey]
+            const possibleIndex: number = bfsQueue.indexOf(childCollection)
+            if (possibleIndex >= 0) {
+              bfsQueue.splice(possibleIndex, 1)
+              if (possibleIndex <= iterIndex) {
+                iterIndex--
+              }
+            }
+            bfsQueue.push(childCollection)
+          }
+        }
+
+        for (const cqElement of item) {
+          const possibleIndex: number = bfsQueue.indexOf(cqElement)
+            if (possibleIndex >= 0) {
+              bfsQueue.splice(possibleIndex, 1)
+              if (possibleIndex <= iterIndex) {
+                iterIndex--
+              }
+            }
+            bfsQueue.push(cqElement)
+        }
+      }
+    }
+
+    this.cachedBfsQueue = bfsQueue
+    this.isElementQueueDirty = false
+    return bfsQueue
+  }
+
+  // public fire(eventName: CanvasqEventType, eventData?: ICanvasqContextEventData): CanvasqContext {
+  //   const eventCallbacks: IAnyFunction[] = this.eventMap[eventName]
+  //   if (eventCallbacks && eventCallbacks.length) {
+  //     eventCallbacks.forEach((eventCallback) => eventCallback(eventData))
+  //   }
+
+  //   return this
+  // }
+
+  // public on(eventName: CanvasqEventType, callback: IAnyFunction): CanvasqContext {
+  //   this.eventMap[eventName] = this.eventMap[eventName] || []
+  //   if (this.eventMap[eventName].indexOf(callback) === -1) {
+  //     this.eventMap[eventName].push(callback)
+  //   }
+
+  //   return this
+  // }
 
   private getNextElementKey(): string {
     const highMultiply = 255 * 255
     const lowMultiply = 255
-    const count: number = this.canvasqElementCount++
+    const count: number = ++this.canvasqElementCount
     const r = Math.floor(count / highMultiply)
     const g = Math.floor((count - r * highMultiply) / lowMultiply)
     const b = (count - r * highMultiply - g * lowMultiply)
 
     return `${r}-${g}-${b}`
-  }
-
-  private listen() {
-    this.on(CanvasqEventType.ContextDrawn, this.handleContextDraw.bind(this))
-    this.on(CanvasqEventType.ContextPathUpdate, this.handleContextPathUpdate.bind(this))
-  }
-
-  private fire(eventName: CanvasqEventType, eventData?: ICanvasqContextEventData): CanvasqContext {
-    const eventCallbacks: IAnyFunction[] = this.eventMap[eventName]
-    if (eventCallbacks && eventCallbacks.length) {
-      eventCallbacks.forEach((eventCallback) => eventCallback(eventData))
-    }
-
-    return this
-  }
-
-  private on(eventName: CanvasqEventType, callback: IAnyFunction): CanvasqContext {
-    this.eventMap[eventName] = this.eventMap[eventName] || []
-    if (this.eventMap[eventName].indexOf(callback) === -1) {
-      this.eventMap[eventName].push(callback)
-    }
-
-    return this
   }
 
   private executeOnHiddenContext(methodName: string, mathodArgs: any[], contextState?: object) {
@@ -164,12 +254,16 @@ export default class CanvasqContext implements ICanvasqContext {
     // Should allow consumer to manually define grouping
     const elementKey = this.getNextElementKey()
     const rgb = CanvasqContext.convertElementKeyToRgb(elementKey)
-    this.canvasqElementMap[elementKey] = new CanvasqElement(elementKey)
+    this.rootCanvasqElementCollection.add(new CanvasqElement(elementKey, {
+      canvasqContext: this,
+    }))
 
     this.executeOnHiddenContext(methodName, args, {
       fillStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,
       strokeStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,
     })
+
+    this.isElementQueueDirty = true
   }
 
   private handleContextPathUpdate(data: ICanvasqContextEventData) {
@@ -200,7 +294,7 @@ export default class CanvasqContext implements ICanvasqContext {
   private addMonitorWrapToFunction(
     propKey: string,
     context: IAnyObject,
-    eventName: CanvasqEventType): CanvasqContext {
+    hookType: CanvasqContextHookType): CanvasqContext {
     const that = this
     const functionToMonitor = context[propKey]
 
@@ -209,7 +303,25 @@ export default class CanvasqContext implements ICanvasqContext {
     }
 
     context[propKey] = function() {
-      that.fire(eventName, { propKey, propVal: Array.prototype.slice.call(arguments) })
+      switch (hookType) {
+        case CanvasqContextHookType.ContextDrawn:
+          that.handleContextDraw({
+            propKey,
+            propVal: Array.prototype.slice.call(arguments),
+          })
+          break
+
+        case CanvasqContextHookType.ContextPathUpdate:
+          that.handleContextPathUpdate({
+            propKey,
+            propVal: Array.prototype.slice.call(arguments),
+          })
+          break
+
+        default:
+          throw new Error(`canvasq context hook type is invalid: ${hookType}`)
+      }
+
       return functionToMonitor.apply(context, arguments)
     }
 
@@ -218,8 +330,7 @@ export default class CanvasqContext implements ICanvasqContext {
 
   private removeMonitorWrapFromFunction(
     propKey: string,
-    context: IAnyObject,
-    eventName?: CanvasqEventType): CanvasqContext {
+    context: IAnyObject): CanvasqContext {
     delete context[propKey]
     return this
   }
@@ -267,21 +378,21 @@ export default class CanvasqContext implements ICanvasqContext {
    * all necessary information in canvasqContext
    */
   private initHooks(): CanvasqContext {
-    this.addHooksToFunctions(listOfDrawFunctions, CanvasqEventType.ContextDrawn)
-    this.addHooksToFunctions(listOfPathUpdateFunctions, CanvasqEventType.ContextPathUpdate)
+    this.addHooksToFunctions(listOfDrawFunctions, CanvasqContextHookType.ContextDrawn)
+    this.addHooksToFunctions(listOfPathUpdateFunctions, CanvasqContextHookType.ContextPathUpdate)
     return this
   }
 
-  private addHooksToFunctions(functionKeys: string[], eventName: CanvasqEventType): CanvasqContext {
+  private addHooksToFunctions(functionKeys: string[], hookType: CanvasqContextHookType): CanvasqContext {
     for (const key of functionKeys) {
-      this.addMonitorWrapToFunction(key, this.context, eventName)
+      this.addMonitorWrapToFunction(key, this.context, hookType)
     }
     return this
   }
 
-  private removeHooksFromFunctions(functionKeys: string[], eventName?: CanvasqEventType): CanvasqContext {
+  private removeHooksFromFunctions(functionKeys: string[]): CanvasqContext {
     for (const key of functionKeys) {
-      this.removeMonitorWrapFromFunction(key, this.context, eventName)
+      this.removeMonitorWrapFromFunction(key, this.context)
     }
     return this
   }

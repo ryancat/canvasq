@@ -6,8 +6,8 @@ interface ICanvasq {
   focus: (canvas: HTMLCanvasElement) => CanvasqContext
 }
 
-let watchedCanvases: HTMLCanvasElement[] = []
-let canvasqContexts: CanvasqContext[] = []
+const watchedCanvases: HTMLCanvasElement[] = []
+const canvasqContexts: CanvasqContext[] = []
 
 const canvasq: ICanvasq = {
   watch: (canvas: HTMLCanvasElement): ICanvasq => {
@@ -40,7 +40,7 @@ const canvasq: ICanvasq = {
   focus: (canvas: HTMLCanvasElement): CanvasqContext => {
     canvasq.watch(canvas)
     return canvasqContexts[watchedCanvases.indexOf(canvas)]
-  }
+  },
 }
 
 export default canvasq

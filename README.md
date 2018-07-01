@@ -62,7 +62,7 @@ context.queryAll('rect') // return all elements with class name 'rect' in a *Can
 You can add event listeners to *CanvasqElement* just like with other DOM elements. Better than that, you can also add to the entire *CanvasqElementCollection*, which will make sure all *CanvasqElement* instances in it responds to the respectful event.
 ```javascript
 let rectElements = context.queryAll('rect')
-rectElements.addEventListener('click', (evt) => {
+rectElements.on('click', (evt) => {
   // evt is a custom event object that inherits from a standard HTML DOM event
   console.log(evt.canvasqElement) // *CanvasqElement* instance that got clicked on.
   // *CanvasqElementCollection* instance that contains all *CanvasqElement* instances that occupies the location where the event happens, in the order of 'z-index'

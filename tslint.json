@@ -25,7 +25,8 @@
         "align": [false],
         "no-empty-interface": [false],
         "only-arrow-functions": [false],
-        "callable-types": [false]
+        "callable-types": [false],
+        "no-empty": [false],
     },
     "jsRules": {
         "max-line-length": {

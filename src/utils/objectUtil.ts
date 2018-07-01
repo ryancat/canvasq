@@ -18,6 +18,14 @@ export function mixin(targetObj: object, ...sourceObjs: Array<object | null>): o
   return to
 }
 
+export function applyMixins(derivedCtor: any, baseCtors: any[]) {
+  baseCtors.forEach((baseCtor) => {
+      Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+          derivedCtor.prototype[name] = baseCtor.prototype[name]
+      })
+  })
+}
+
 // export function augment(targetObj: object, sourceObj: object | null): void {
 //   if (sourceObj === null) {
 //     return

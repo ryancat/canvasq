@@ -1,19 +1,36 @@
-import CanvasqEvent from './CanvasqEvent'
-import CanvasqEventEmitter from './canvsqEventEmitter'
+import { applyMixins } from '../utils/objectUtil'
+import CanvasqEventEmitter from './canvasqEventEmitter'
 import {
   IAnyFunction,
-  IAnyObject,
+  ICanvasqContext,
   ICanvasqElement,
+  ICanvasqElementOptions,
 } from './types'
 
-export default class CanvasqElement extends CanvasqEventEmitter implements ICanvasqElement {
+class CanvasqElement implements ICanvasqElement {
 
-  public eventMap: {[key: string]: IAnyFunction[]}
-  private key: string
+  public canvasqContext: ICanvasqContext
+  /**
+   * eventMap stores event callbacks for given event in buble phase
+   */
+  public eventMap: {[key: string]: IAnyFunction[]} = {}
+  /**
+   * captureEventMap stores event callbacks for given event in capture phase
+   */
+  public captureEventMap: {[key: string]: IAnyFunction[]} = {}
+  public key: string
+  private states: object
+  private attributes: object
 
-  constructor(key: string, states?: object, attributes?: object) {
-    super()
+  constructor(key: string, options: ICanvasqElementOptions) {
     this.key = key
-    this.eventMap = {}
+    this.states = options.states || {}
+    this.attributes = options.attributes || {}
+    this.canvasqContext = options.canvasqContext
   }
+
+  public fire(eventName: string, eventData?: any, isCapturePhase?: boolean): void {}
+  public on(eventName: string, callback: IAnyFunction, useCapture?: boolean): void {}
 }
+applyMixins(CanvasqElement, [CanvasqEventEmitter])
+export default CanvasqElement

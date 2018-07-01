@@ -4,25 +4,22 @@ export interface IRgb {
   [index: number]: number
 }
 
-/**
- * Base canvasq event interface
- */
-export interface ICanvasqEventData {
+export interface ICanvasqContextEventData {
   propKey: string,
-  propVal: any[]
+  propVal: any
 }
-
-export interface ICanvasqContextEventData extends ICanvasqEventData {}
 
 export interface ICanvasqEvent {}
 
 export interface ICanvasqContext {
   query: (className: string) => ICanvasqElement | null,
   destroy: () => void,
-  queryAll: (className: string | undefined) => ICanvasqElementCollection
+  queryAll: (className: string | undefined) => ICanvasqElementCollection,
+  subscribe: (eventName: string) => void,
 }
 
 export interface ICanvasqElement {
+  // eventMap: {[key: string]: IAnyFunction[]}
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,
   // getAttribute: (attributeKey: string) => any,
@@ -52,10 +49,30 @@ export interface ICanvasqElementCollection {
   //   useCapture: boolean) => CanvasqContext
 }
 
+export interface ICanvasqElementCollectionOptions {
+  canvasqContext: ICanvasqContext
+}
+
+export interface ICanvasqElementOptions {
+  canvasqContext: ICanvasqContext,
+  states?: object,
+  attributes?: object
+}
+
+export interface ICanvasqListeningEvent {
+  eventName: string,
+  callback: IAnyFunction
+}
+
 /**
  * Enum for canvasq event names
  */
-export enum CanvasqEventType {
+// export enum CanvasqEventType {
+//   ContextDrawn,
+//   ContextPathUpdate,
+// }
+
+export enum CanvasqContextHookType {
   ContextDrawn,
   ContextPathUpdate,
 }
