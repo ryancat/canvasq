@@ -96,12 +96,12 @@ export default class CanvasqContext implements ICanvasqContext {
     }
   }
 
-  public query(className: string): ICanvasqElement | null {
-    return this.rootCanvasqElementCollection.query(className)
+  public query(collectionKey: string): ICanvasqElement | null {
+    return this.rootCanvasqElementCollection.query(collectionKey)
   }
 
-  public queryAll(className?: string): ICanvasqElementCollection {
-    return this.rootCanvasqElementCollection.queryAll(className)
+  public queryAll(collectionKey?: string): ICanvasqElementCollection {
+    return this.rootCanvasqElementCollection.queryAll(collectionKey)
   }
 
   public destroy(): void {
@@ -153,8 +153,8 @@ export default class CanvasqContext implements ICanvasqContext {
     })
   }
 
-  public addToCollection(collectionName: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqContext {
-    this.rootCanvasqElementCollection.addToCollection(collectionName, item)
+  public addToCollection(collectionKey: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqContext {
+    this.rootCanvasqElementCollection.addToCollection(collectionKey, item)
     return this
   }
 

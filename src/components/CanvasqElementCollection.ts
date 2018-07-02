@@ -49,8 +49,8 @@ class CanvasqElementCollection extends Array<ICanvasqElement> implements ICanvas
     return this
   }
 
-  public query(className: string): ICanvasqElement | null {
-    const cqCollection: ICanvasqElementCollection | undefined = this.cqCollectionMap[className]
+  public query(collectionKey: string): ICanvasqElement | null {
+    const cqCollection: ICanvasqElementCollection | undefined = this.cqCollectionMap[collectionKey]
     if (!cqCollection || cqCollection.isEmpty()) {
       // No canvasq elements has such class name
       return null
@@ -59,16 +59,16 @@ class CanvasqElementCollection extends Array<ICanvasqElement> implements ICanvas
     return cqCollection[0]
   }
 
-  public queryAll(className?: string): ICanvasqElementCollection {
-    return className ? this.cqCollectionMap[className] : this
+  public queryAll(collectionKey?: string): ICanvasqElementCollection {
+    return collectionKey ? this.cqCollectionMap[collectionKey] : this
   }
 
-  public addToCollection(collectionName: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqElementCollection {
-    this.cqCollectionMap[collectionName] = this.cqCollectionMap[collectionName] || new CanvasqElementCollection({
+  public addToCollection(collectionKey: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqElementCollection {
+    this.cqCollectionMap[collectionKey] = this.cqCollectionMap[collectionKey] || new CanvasqElementCollection({
       canvasqContext: this.canvasqContext
     })
     
-    const targetCollection = this.cqCollectionMap[collectionName]
+    const targetCollection = this.cqCollectionMap[collectionKey]
     if (item instanceof CanvasqElement) {
       targetCollection.add(item)
     } else if (item instanceof CanvasqElementCollection) {

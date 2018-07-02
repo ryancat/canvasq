@@ -32,8 +32,8 @@ class CanvasqElement implements ICanvasqElement {
   public fire(eventName: string, eventData?: any, isCapturePhase?: boolean): ICanvasqElement { return this }
   public on(eventName: string, callback: IAnyFunction, useCapture?: boolean): ICanvasqElement { return this }
 
-  public addToCollection(collectionName: string): ICanvasqElement {
-    this.canvasqContext.addToCollection(collectionName, this)
+  public addToCollection(collectionKey: string): ICanvasqElement {
+    this.canvasqContext.addToCollection(collectionKey, this)
     return this
   }
 }

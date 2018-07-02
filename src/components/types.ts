@@ -11,11 +11,11 @@ export interface ICanvasqContextEventData {
 
 export interface ICanvasqContext {
   context: CanvasRenderingContext2D,
-  query: (className: string) => ICanvasqElement | null,
+  query: (collectionKey: string) => ICanvasqElement | null,
   destroy: () => void,
-  queryAll: (className?: string) => ICanvasqElementCollection,
+  queryAll: (collectionKey?: string) => ICanvasqElementCollection,
   subscribe: (eventName: string) => void,
-  addToCollection: (collectionName: string, item: ICanvasqElement | ICanvasqElementCollection) => ICanvasqContext,
+  addToCollection: (collectionKey: string, item: ICanvasqElement | ICanvasqElementCollection) => ICanvasqContext,
 }
 
 export interface ICanvasqElement {
@@ -26,15 +26,15 @@ export interface ICanvasqElement {
    */
   captureEventMap: {[key: string]: IAnyFunction[]},
   key: string,
-  addToCollection: (collectionName: string) => ICanvasqElement,
+  addToCollection: (collectionKey: string) => ICanvasqElement,
   fire: (eventName: string, eventData?: any, isCapturePhase?: boolean) => ICanvasqElement,
   // eventMap: {[key: string]: IAnyFunction[]}
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,
   // getAttribute: (attributeKey: string) => any,
   // setAttribute: (attributeKey: string, attributeValue: any) => CanvasqContext,
-  // addClassName: (...classNames: string[]) => CanvasqContext,
-  // removeClassName: (...classNames: string[]) => CanvasqContext,
+  // addcollectionKey: (...collectionKeys: string[]) => CanvasqContext,
+  // removecollectionKey: (...collectionKeys: string[]) => CanvasqContext,
   // addEventListener: (
   //   eventName: string,
   //   callback: (evt: ICanvasqEvent) => void,
@@ -57,17 +57,17 @@ export interface ICanvasqElementCollection {
   [key: number]: ICanvasqElement,
 
   isEmpty: () => boolean,
-  query: (className: string) => ICanvasqElement | null,
-  queryAll: (className?: string) => ICanvasqElementCollection,
-  addToCollection: (collectionName: string, item: ICanvasqElement | ICanvasqElementCollection) => ICanvasqElementCollection,
+  query: (collectionKey: string) => ICanvasqElement | null,
+  queryAll: (collectionKey?: string) => ICanvasqElementCollection,
+  addToCollection: (collectionKey: string, item: ICanvasqElement | ICanvasqElementCollection) => ICanvasqElementCollection,
   add: (canvasqElement: ICanvasqElement) => ICanvasqElementCollection,
   fire: (eventName: string, eventData?: any, isCapturePhase?: boolean) => ICanvasqElementCollection,
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,
   // getAttribute: (attributeKey: string) => any,
   // setAttribute: (attributeKey: string, attributeValue: any) => CanvasqContext,
-  // addClassName: (...classNames: string[]) => CanvasqContext,
-  // removeClassName: (...classNames: string[]) => CanvasqContext,
+  // addcollectionKey: (...collectionKeys: string[]) => CanvasqContext,
+  // removecollectionKey: (...collectionKeys: string[]) => CanvasqContext,
   // addEventListener: (
   //   eventName: string,
   //   callback: (evt: CanvasqEventInterface) => void,

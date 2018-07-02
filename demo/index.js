@@ -9,7 +9,7 @@ context.rect(20, 20, 100, 100)
 context.fill()
 
 context.strokeStyle = '#ff0000'
-context.lineWidth = 2
+context.lineWidth = 8
 
 context.beginPath()
 context.moveTo(20, 20)
@@ -40,15 +40,29 @@ canvasqContext.queryAll()[1]
 .addToCollection('collection 1')
 .addToCollection('collection 2')
 
+canvasqContext.queryAll()[2]
+.addToCollection('collection 3')
+.addToCollection('collection 2')
+
 canvasqContext.queryAll('collection 1')
 .on('click', (evt) => {
   console.log('collection 1 clicked!')
 })
 
-canvasqContext.queryAll()
+canvasqContext.queryAll('collection 2')
 .on('click', (evt) => {
-  console.log('collection clicked')
+  console.log('collection 2 clicked!')
 })
+
+canvasqContext.queryAll('collection 3')
+.on('click', (evt) => {
+  console.log('collection 3 clicked!')
+})
+
+// canvasqContext.queryAll()
+// .on('click', (evt) => {
+//   console.log('collection clicked')
+// })
 // var ctx = canvas.getContext('2d');
 
 // // Create clipping region
