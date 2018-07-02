@@ -67,6 +67,7 @@ export default class CanvasqContext implements ICanvasqContext {
   private isElementQueueDirty: boolean
   private cachedBfsQueue: Array<ICanvasqElement | ICanvasqElementCollection>
   private listeningEvents: ICanvasqListeningEvent[]
+  private activeCollectionKeys: string[]
 
   constructor(canvas: HTMLCanvasElement) {
     this.hiddenCanvas = document.createElement('canvas')
@@ -86,6 +87,7 @@ export default class CanvasqContext implements ICanvasqContext {
     this.isElementQueueDirty = false
     this.cachedBfsQueue = []
     this.listeningEvents = []
+    this.activeCollectionKeys = []
 
     this.initHooks()
     // this.initDelegateCanvas(canvas)
@@ -155,6 +157,30 @@ export default class CanvasqContext implements ICanvasqContext {
 
   public addToCollection(collectionKey: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqContext {
     this.rootCanvasqElementCollection.addToCollection(collectionKey, item)
+    return this
+  }
+
+  public startCollect(collectionKeys: string | string[]): ICanvasqContext {
+    if (typeof collectionKeys === 'string') {
+      collectionKeys = [collectionKeys]
+    }
+
+    this.activeCollectionKeys = this.activeCollectionKeys.concat(collectionKeys)
+    return this
+  }
+
+  public stopCollect(collectionKeys?: string | string[]): ICanvasqContext {
+    if (typeof collectionKeys === 'undefined') {
+      this.activeCollectionKeys = []
+    } else {
+      if (typeof collectionKeys === 'string') {
+        collectionKeys = [collectionKeys]
+      }
+      
+      // Remove all collection keys that we are stop collecting
+      this.activeCollectionKeys = this.activeCollectionKeys.filter((activeCollectionKey) => (collectionKeys || []).indexOf(activeCollectionKey) === -1)
+    }
+    
     return this
   }
 
@@ -260,9 +286,14 @@ export default class CanvasqContext implements ICanvasqContext {
     // Should allow consumer to manually define grouping
     const elementKey = this.getNextElementKey()
     const rgb = CanvasqContext.convertElementKeyToRgb(elementKey)
-    this.rootCanvasqElementCollection.add(new CanvasqElement(elementKey, {
+    const newCanvasqElement = new CanvasqElement(elementKey, {
       canvasqContext: this,
-    }))
+    })
+    this.rootCanvasqElementCollection.add(newCanvasqElement)
+    
+    for (const collectionKey of this.activeCollectionKeys) {
+      newCanvasqElement.addToCollection(collectionKey)
+    }
 
     this.executeOnHiddenContext(methodName, args, {
       fillStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,

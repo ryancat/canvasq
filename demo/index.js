@@ -8,6 +8,18 @@ context.fillStyle = '#c1c1c1'
 context.rect(20, 20, 100, 100)
 context.fill()
 
+canvasqContext.startCollect('collection 3')
+let count = 0
+while (count < 10) {
+  let x = Math.random() * 480
+  let y = Math.random() * 480
+  context.moveTo(x, y)
+  context.arc(x, y, 20, 0, 2 * Math.PI)
+  count++
+}
+context.fill()
+canvasqContext.stopCollect()
+
 context.strokeStyle = '#ff0000'
 context.lineWidth = 8
 
@@ -18,31 +30,19 @@ context.moveTo(120, 20)
 context.lineTo(20, 120)
 context.stroke()
 
-// canvasqContext.collectionStart('collection 1')
-let count = 0
-while (count < 10) {
-  let x = Math.random() * 480
-  let y = Math.random() * 480
-  context.moveTo(x, y)
-  context.arc(x, y, 20, 0, 2 * Math.PI)
-  count++
-}
-context.fill()
-// canvasqContext.endRecord()
-
 canvasqContext.queryAll()[0]
 .addToCollection('collection 1')
 .on('click', (evt) => {
   console.log('first element clicked')
 })
 
-canvasqContext.queryAll()[1]
+canvasqContext.queryAll()[2]
 .addToCollection('collection 1')
 .addToCollection('collection 2')
 
-canvasqContext.queryAll()[2]
-.addToCollection('collection 3')
-.addToCollection('collection 2')
+// canvasqContext.queryAll()[2]
+// .addToCollection('collection 3')
+// .addToCollection('collection 2')
 
 canvasqContext.queryAll('collection 1')
 .on('click', (evt) => {
