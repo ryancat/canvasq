@@ -1,7 +1,7 @@
 let canvas = document.querySelector('.stage')
-// let context = canvas.getContext('2d')
 canvasq = canvasq.default
-canvasq.watch(canvas)
+// canvasq.watch(canvas)
+const canvasqContext = canvasq.focus(canvas)
 
 let context = canvas.getContext('2d')
 context.fillStyle = '#c1c1c1'
@@ -18,14 +18,37 @@ context.moveTo(120, 20)
 context.lineTo(20, 120)
 context.stroke()
 
-const canvasqContext = canvasq.focus(canvas)
+// canvasqContext.collectionStart('collection 1')
+let count = 0
+while (count < 10) {
+  let x = Math.random() * 480
+  let y = Math.random() * 480
+  context.moveTo(x, y)
+  context.arc(x, y, 20, 0, 2 * Math.PI)
+  count++
+}
+context.fill()
+// canvasqContext.endRecord()
 
 canvasqContext.queryAll()[0]
+.addToCollection('collection 1')
 .on('click', (evt) => {
-  console.log('clicked')
+  console.log('first element clicked')
 })
 
+canvasqContext.queryAll()[1]
+.addToCollection('collection 1')
+.addToCollection('collection 2')
 
+canvasqContext.queryAll('collection 1')
+.on('click', (evt) => {
+  console.log('collection 1 clicked!')
+})
+
+canvasqContext.queryAll()
+.on('click', (evt) => {
+  console.log('collection clicked')
+})
 // var ctx = canvas.getContext('2d');
 
 // // Create clipping region

@@ -9,16 +9,25 @@ export interface ICanvasqContextEventData {
   propVal: any
 }
 
-export interface ICanvasqEvent {}
-
 export interface ICanvasqContext {
+  context: CanvasRenderingContext2D,
   query: (className: string) => ICanvasqElement | null,
   destroy: () => void,
-  queryAll: (className: string | undefined) => ICanvasqElementCollection,
+  queryAll: (className?: string) => ICanvasqElementCollection,
   subscribe: (eventName: string) => void,
+  addToCollection: (collectionName: string, item: ICanvasqElement | ICanvasqElementCollection) => ICanvasqContext,
 }
 
 export interface ICanvasqElement {
+  canvasqContext: ICanvasqContext,
+  eventMap: {[key: string]: IAnyFunction[]},
+  /**
+   * captureEventMap stores event callbacks for given event in capture phase
+   */
+  captureEventMap: {[key: string]: IAnyFunction[]},
+  key: string,
+  addToCollection: (collectionName: string) => ICanvasqElement,
+  fire: (eventName: string, eventData?: any, isCapturePhase?: boolean) => ICanvasqElement,
   // eventMap: {[key: string]: IAnyFunction[]}
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,
@@ -34,9 +43,25 @@ export interface ICanvasqElement {
 }
 
 export interface ICanvasqElementCollection {
+  // canvasqContext: ICanvasqContext,
+  // /**
+  //  * eventMap stores event callbacks for given event in buble phase
+  //  */
+  // eventMap: {[key: string]: IAnyFunction[]},
+  // /**
+  //  * captureEventMap stores event callbacks for given event in capture phase
+  //  */
+  // captureEventMap: {[key: string]: IAnyFunction[]},
+  // cqCollectionMap: {[key: string]: ICanvasqElementCollection},
+  // cqElementMap: {[key: string]: ICanvasqElement},
+  [key: number]: ICanvasqElement,
+
   isEmpty: () => boolean,
   query: (className: string) => ICanvasqElement | null,
   queryAll: (className?: string) => ICanvasqElementCollection,
+  addToCollection: (collectionName: string, item: ICanvasqElement | ICanvasqElementCollection) => ICanvasqElementCollection,
+  add: (canvasqElement: ICanvasqElement) => ICanvasqElementCollection,
+  fire: (eventName: string, eventData?: any, isCapturePhase?: boolean) => ICanvasqElementCollection,
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,
   // getAttribute: (attributeKey: string) => any,

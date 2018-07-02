@@ -29,8 +29,13 @@ class CanvasqElement implements ICanvasqElement {
     this.canvasqContext = options.canvasqContext
   }
 
-  public fire(eventName: string, eventData?: any, isCapturePhase?: boolean): void {}
-  public on(eventName: string, callback: IAnyFunction, useCapture?: boolean): void {}
+  public fire(eventName: string, eventData?: any, isCapturePhase?: boolean): ICanvasqElement { return this }
+  public on(eventName: string, callback: IAnyFunction, useCapture?: boolean): ICanvasqElement { return this }
+
+  public addToCollection(collectionName: string): ICanvasqElement {
+    this.canvasqContext.addToCollection(collectionName, this)
+    return this
+  }
 }
 applyMixins(CanvasqElement, [CanvasqEventEmitter])
 export default CanvasqElement

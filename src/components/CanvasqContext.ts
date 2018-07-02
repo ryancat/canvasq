@@ -6,6 +6,7 @@ import {
   ICanvasqContext,
   ICanvasqContextEventData,
   ICanvasqElement,
+  ICanvasqElementCollection,
   ICanvasqListeningEvent,
   IRgb,
 } from './types'
@@ -61,10 +62,10 @@ export default class CanvasqContext implements ICanvasqContext {
    */
   private hiddenCanvas: HTMLCanvasElement
   private hiddenContext: CanvasRenderingContext2D
-  private rootCanvasqElementCollection: CanvasqElementCollection
+  private rootCanvasqElementCollection: ICanvasqElementCollection
   private canvasqElementCount: number
   private isElementQueueDirty: boolean
-  private cachedBfsQueue: Array<CanvasqElement | CanvasqElementCollection>
+  private cachedBfsQueue: Array<ICanvasqElement | ICanvasqElementCollection>
   private listeningEvents: ICanvasqListeningEvent[]
 
   constructor(canvas: HTMLCanvasElement) {
@@ -99,7 +100,7 @@ export default class CanvasqContext implements ICanvasqContext {
     return this.rootCanvasqElementCollection.query(className)
   }
 
-  public queryAll(className?: string): CanvasqElementCollection {
+  public queryAll(className?: string): ICanvasqElementCollection {
     return this.rootCanvasqElementCollection.queryAll(className)
   }
 
@@ -125,7 +126,7 @@ export default class CanvasqContext implements ICanvasqContext {
         const y = evt.clientY - that.context.canvas.getBoundingClientRect().top
         const [red, green, blue] = that.hiddenContext.getImageData(Math.floor(x), Math.floor(y), 1, 1).data
         const canvasqElementKey = `${red}-${green}-${blue}`
-        const focusedQueue: Array<CanvasqElement | CanvasqElementCollection> = that.getBfsTraverseQueue().filter((item) => {
+        const focusedQueue: Array<ICanvasqElement | ICanvasqElementCollection> = that.getBfsTraverseQueue().filter((item) => {
           let willFire = false
           if (item instanceof CanvasqElement) {
             willFire = item.key === canvasqElementKey
@@ -152,12 +153,17 @@ export default class CanvasqContext implements ICanvasqContext {
     })
   }
 
-  private getBfsTraverseQueue(): Array<CanvasqElement | CanvasqElementCollection> {
+  public addToCollection(collectionName: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqContext {
+    this.rootCanvasqElementCollection.addToCollection(collectionName, item)
+    return this
+  }
+
+  private getBfsTraverseQueue(): Array<ICanvasqElement | ICanvasqElementCollection> {
     if (!this.isElementQueueDirty) {
       return this.cachedBfsQueue
     }
 
-    const bfsQueue: Array<CanvasqElement | CanvasqElementCollection> = [this.rootCanvasqElementCollection]
+    const bfsQueue: Array<ICanvasqElement | ICanvasqElementCollection> = [this.rootCanvasqElementCollection]
     let iterIndex = 0
 
     while (iterIndex < bfsQueue.length) {
@@ -172,7 +178,7 @@ export default class CanvasqContext implements ICanvasqContext {
       if (item instanceof CanvasqElementCollection) {
         for (const collectionKey in item.cqCollectionMap) {
           if (item.cqCollectionMap.hasOwnProperty(collectionKey)) {
-            const childCollection: CanvasqElementCollection = item.cqCollectionMap[collectionKey]
+            const childCollection: ICanvasqElementCollection = item.cqCollectionMap[collectionKey]
             const possibleIndex: number = bfsQueue.indexOf(childCollection)
             if (possibleIndex >= 0) {
               bfsQueue.splice(possibleIndex, 1)
@@ -272,7 +278,7 @@ export default class CanvasqContext implements ICanvasqContext {
     this.executeOnHiddenContext(methodName, args)
   }
 
-  private copyContextState(contextState?: IAnyObject): CanvasqContext {
+  private copyContextState(contextState?: IAnyObject): ICanvasqContext {
     contextState = contextState || this.context
     const hiddenContext: IAnyObject = this.hiddenContext
     for (const key in contextState) {
@@ -294,7 +300,7 @@ export default class CanvasqContext implements ICanvasqContext {
   private addMonitorWrapToFunction(
     propKey: string,
     context: IAnyObject,
-    hookType: CanvasqContextHookType): CanvasqContext {
+    hookType: CanvasqContextHookType): ICanvasqContext {
     const that = this
     const functionToMonitor = context[propKey]
 
@@ -330,7 +336,7 @@ export default class CanvasqContext implements ICanvasqContext {
 
   private removeMonitorWrapFromFunction(
     propKey: string,
-    context: IAnyObject): CanvasqContext {
+    context: IAnyObject): ICanvasqContext {
     delete context[propKey]
     return this
   }
@@ -377,20 +383,20 @@ export default class CanvasqContext implements ICanvasqContext {
    * When the context draw something, we need to capture that and store
    * all necessary information in canvasqContext
    */
-  private initHooks(): CanvasqContext {
+  private initHooks(): ICanvasqContext {
     this.addHooksToFunctions(listOfDrawFunctions, CanvasqContextHookType.ContextDrawn)
     this.addHooksToFunctions(listOfPathUpdateFunctions, CanvasqContextHookType.ContextPathUpdate)
     return this
   }
 
-  private addHooksToFunctions(functionKeys: string[], hookType: CanvasqContextHookType): CanvasqContext {
+  private addHooksToFunctions(functionKeys: string[], hookType: CanvasqContextHookType): ICanvasqContext {
     for (const key of functionKeys) {
       this.addMonitorWrapToFunction(key, this.context, hookType)
     }
     return this
   }
 
-  private removeHooksFromFunctions(functionKeys: string[]): CanvasqContext {
+  private removeHooksFromFunctions(functionKeys: string[]): ICanvasqContext {
     for (const key of functionKeys) {
       this.removeMonitorWrapFromFunction(key, this.context)
     }
@@ -414,7 +420,7 @@ export default class CanvasqContext implements ICanvasqContext {
   //   return this
   // }
 
-  private initHiddenCanvas(): CanvasqContext {
+  private initHiddenCanvas(): ICanvasqContext {
     this.hiddenCanvas.width = this.context.canvas.width
     this.hiddenCanvas.height = this.context.canvas.height
     return this

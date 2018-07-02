@@ -4,11 +4,12 @@ import CanvasqEventEmitter from './CanvasqEventEmitter'
 import {
   IAnyFunction,
   ICanvasqContext,
+  ICanvasqElement,
   ICanvasqElementCollection,
   ICanvasqElementCollectionOptions,
 } from './types'
 
-class CanvasqElementCollection extends Array<CanvasqElement> implements ICanvasqElementCollection {
+class CanvasqElementCollection extends Array<ICanvasqElement> implements ICanvasqElementCollection {
 
   public canvasqContext: ICanvasqContext
   /**
@@ -19,8 +20,8 @@ class CanvasqElementCollection extends Array<CanvasqElement> implements ICanvasq
    * captureEventMap stores event callbacks for given event in capture phase
    */
   public captureEventMap: {[key: string]: IAnyFunction[]} = {}
-  public cqCollectionMap: {[key: string]: CanvasqElementCollection} = {}
-  public cqElementMap: {[key: string]: CanvasqElement} = {}
+  public cqCollectionMap: {[key: string]: ICanvasqElementCollection} = {}
+  public cqElementMap: {[key: string]: ICanvasqElement} = {}
 
   constructor(options: ICanvasqElementCollectionOptions) {
     super()
@@ -35,21 +36,21 @@ class CanvasqElementCollection extends Array<CanvasqElement> implements ICanvasq
     this.canvasqContext = options.canvasqContext
   }
 
-  public fire(eventName: string, eventData?: any, isCapturePhase?: boolean): CanvasqElementCollection { return this }
-  public on(eventName: string, callback: IAnyFunction, useCapture?: boolean): CanvasqElementCollection { return this }
+  public fire(eventName: string, eventData?: any, isCapturePhase?: boolean): ICanvasqElementCollection { return this }
+  public on(eventName: string, callback: IAnyFunction, useCapture?: boolean): ICanvasqElementCollection { return this }
 
   public isEmpty(): boolean {
     return this.length === 0
   }
 
-  public add(canvasqElement: CanvasqElement): CanvasqElementCollection {
+  public add(canvasqElement: ICanvasqElement): ICanvasqElementCollection {
     this.push(canvasqElement)
     this.cqElementMap[canvasqElement.key] = canvasqElement
     return this
   }
 
-  public query(className: string): CanvasqElement | null {
-    const cqCollection: CanvasqElementCollection | undefined = this.cqCollectionMap[className]
+  public query(className: string): ICanvasqElement | null {
+    const cqCollection: ICanvasqElementCollection | undefined = this.cqCollectionMap[className]
     if (!cqCollection || cqCollection.isEmpty()) {
       // No canvasq elements has such class name
       return null
@@ -58,8 +59,25 @@ class CanvasqElementCollection extends Array<CanvasqElement> implements ICanvasq
     return cqCollection[0]
   }
 
-  public queryAll(className?: string): CanvasqElementCollection {
+  public queryAll(className?: string): ICanvasqElementCollection {
     return className ? this.cqCollectionMap[className] : this
+  }
+
+  public addToCollection(collectionName: string, item: ICanvasqElement | ICanvasqElementCollection): ICanvasqElementCollection {
+    this.cqCollectionMap[collectionName] = this.cqCollectionMap[collectionName] || new CanvasqElementCollection({
+      canvasqContext: this.canvasqContext
+    })
+    
+    const targetCollection = this.cqCollectionMap[collectionName]
+    if (item instanceof CanvasqElement) {
+      targetCollection.add(item)
+    } else if (item instanceof CanvasqElementCollection) {
+      for (const canvasqElement of item) {
+        targetCollection.add(canvasqElement)
+      }
+    }
+
+    return this
   }
 }
 
