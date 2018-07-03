@@ -220,7 +220,7 @@ export default class CanvasqContext implements ICanvasqContext {
           const possibleIndex: number = bfsQueue.indexOf(cqElement)
             if (possibleIndex >= 0) {
               bfsQueue.splice(possibleIndex, 1)
-              if (possibleIndex <= iterIndex) {
+              if (possibleIndex < iterIndex) {
                 iterIndex--
               }
             }
