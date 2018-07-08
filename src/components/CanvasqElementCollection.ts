@@ -22,6 +22,7 @@ class CanvasqElementCollection extends Array<ICanvasqElement> implements ICanvas
   public captureEventMap: {[key: string]: IAnyFunction[]} = {}
   public cqCollectionMap: {[key: string]: ICanvasqElementCollection} = {}
   public cqElementMap: {[key: string]: ICanvasqElement} = {}
+  private attributeMap: {[key: string]: any} = {}
 
   constructor(options: ICanvasqElementCollectionOptions) {
     super()
@@ -79,6 +80,20 @@ class CanvasqElementCollection extends Array<ICanvasqElement> implements ICanvas
       }
     }
 
+    return this
+  }
+
+  public setContextState(stateKey: string, stateVal: string, forceRender?: boolean): ICanvasqElementCollection {
+    this.forEach((canvasqElement) => canvasqElement.setContextState(stateKey, stateVal, forceRender))
+    return this
+  }
+
+  public getAttribute(attributeKey: string): string {
+    return this.attributeMap[attributeKey]
+  }
+
+  public setAttribute(attributeKey: string, attributeVal: any): ICanvasqElementCollection {
+    this.attributeMap[attributeKey] = attributeVal
     return this
   }
 }

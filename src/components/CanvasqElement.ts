@@ -20,14 +20,12 @@ class CanvasqElement implements ICanvasqElement {
   public captureEventMap: {[key: string]: IAnyFunction[]} = {}
   public key: string
   public collectionKeys: string[] = []
-  private attributes: object
   private contextState: {[key: string]: string}
   private attributeMap: {[key: string]: any} = {}
 
   constructor(key: string, options: ICanvasqElementOptions) {
     this.key = key
     this.contextState = options.contextState || {}
-    this.attributes = options.attributes || {}
     this.canvasqContext = options.canvasqContext
   }
 
@@ -43,8 +41,21 @@ class CanvasqElement implements ICanvasqElement {
     return this.contextState[stateKey]
   }
 
-  public setContextState(stateKey: string, stateVal: string): ICanvasqElement {
+  public setContextState(stateKey: string, stateVal: string, forceRender?: boolean): ICanvasqElement {
     this.contextState[stateKey] = stateVal
+
+    if (forceRender) {
+      this.renderContextState()
+    }
+    return this
+  }
+
+  public getAttribute(attributeKey: string): string {
+    return this.attributeMap[attributeKey]
+  }
+
+  public setAttribute(attributeKey: string, attributeVal: any): ICanvasqElement {
+    this.attributeMap[attributeKey] = attributeVal
     return this
   }
 

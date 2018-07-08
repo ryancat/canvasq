@@ -274,16 +274,16 @@ export default class CanvasqContext implements ICanvasqContext {
   // }
 
   private getNextElementKey(): string {
-    // const highMultiply = 255 * 255
-    // const lowMultiply = 255
-    // const count: number = ++this.canvasqElementCount
-    // const r = Math.floor(count / highMultiply)
-    // const g = Math.floor((count - r * highMultiply) / lowMultiply)
-    // const b = (count - r * highMultiply - g * lowMultiply)
+    const highMultiply = 255 * 255
+    const lowMultiply = 255
+    const count: number = ++this.canvasqElementCount
+    const r = Math.floor(count / highMultiply)
+    const g = Math.floor((count - r * highMultiply) / lowMultiply)
+    const b = (count - r * highMultiply - g * lowMultiply)
 
-    const r = Math.floor(Math.random() * 255)
-    const g = Math.floor(Math.random() * 255)
-    const b = Math.floor(Math.random() * 255)
+    // const r = Math.floor(Math.random() * 255)
+    // const g = Math.floor(Math.random() * 255)
+    // const b = Math.floor(Math.random() * 255)
 
     return `${r}-${g}-${b}`
   }

@@ -31,6 +31,10 @@ export interface ICanvasqElement {
   fire: (eventName: string, eventData?: any, isCapturePhase?: boolean) => ICanvasqElement,
   addCollectionKey: (collectionKey: string) => ICanvasqElement,
   removeCollectionKey: (collectionKey: string) => ICanvasqElement,
+  getContextState: (stateKey: string) => string,
+  setContextState: (stateKey: string, stateVal: string, forceRender?: boolean) => ICanvasqElement,
+  getAttribute: (attributeKey: string) => string,
+  setAttribute: (attributeKey: string, attributeVal: any) => ICanvasqElement,
   // eventMap: {[key: string]: IAnyFunction[]}
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,

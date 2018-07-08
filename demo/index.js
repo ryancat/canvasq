@@ -62,9 +62,13 @@ canvasqContext.queryAll('collection 3')
   console.log('now change collection 3')
   canvasqContext.queryAll('collection 3')[0]
   .setContextState('fillStyle', 'green')
-  .setContextState('globalAlpha', 0.5)
-  .renderContextState()
+  .setContextState('globalAlpha', 0.5, true)
+  // .renderContextState()
 })
+
+canvasqContext.queryAll('collection 3')
+.setAttribute('abc', 123)
+console.log(canvasqContext.queryAll('collection 3').getAttribute('abc'))
 
 canvasqContext.startCollect(['collection 4', 'collection 5'])
 count = 0
