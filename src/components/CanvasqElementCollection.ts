@@ -70,9 +70,11 @@ class CanvasqElementCollection extends Array<ICanvasqElement> implements ICanvas
     
     const targetCollection = this.cqCollectionMap[collectionKey]
     if (item instanceof CanvasqElement) {
+      item.addCollectionKey(collectionKey)
       targetCollection.add(item)
     } else if (item instanceof CanvasqElementCollection) {
       for (const canvasqElement of item) {
+        canvasqElement.addCollectionKey(collectionKey)
         targetCollection.add(canvasqElement)
       }
     }

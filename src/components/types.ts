@@ -11,6 +11,7 @@ export interface ICanvasqContextEventData {
 
 export interface ICanvasqContext {
   context: CanvasRenderingContext2D,
+  hiddenContext: CanvasRenderingContext2D,
   query: (collectionKey: string) => ICanvasqElement | null,
   destroy: () => void,
   queryAll: (collectionKey?: string) => ICanvasqElementCollection,
@@ -28,6 +29,8 @@ export interface ICanvasqElement {
   key: string,
   addToCollection: (collectionKey: string) => ICanvasqElement,
   fire: (eventName: string, eventData?: any, isCapturePhase?: boolean) => ICanvasqElement,
+  addCollectionKey: (collectionKey: string) => ICanvasqElement,
+  removeCollectionKey: (collectionKey: string) => ICanvasqElement,
   // eventMap: {[key: string]: IAnyFunction[]}
   // getState: (stateKey: string) => any,
   // setState: (stateKey: string, stateValue: any) => CanvasqContext,
@@ -80,7 +83,7 @@ export interface ICanvasqElementCollectionOptions {
 
 export interface ICanvasqElementOptions {
   canvasqContext: ICanvasqContext,
-  states?: object,
+  contextState?: {[key: string]: string},
   attributes?: object
 }
 

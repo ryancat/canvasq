@@ -37,6 +37,27 @@ const listOfPathUpdateFunctions = [
   'arc',
 ]
 
+const listOfContextStateKey = [
+  'strokeStyle',
+  'fillStyle',
+  'globalAlpha',
+  'lineWidth',
+  'lineCap',
+  'lineJoin',
+  'miterLimit',
+  'lineDashOffset',
+  'shadowOffsetX',
+  'shadowOffsetY',
+  'shadowBlur',
+  'shadowColor',
+  'globalCompositeOperation',
+  'font',
+  'textAlign',
+  'textBaseline',
+  'direction',
+  'imageSmoothingEnabled'
+]
+
 /**
  * The CanvasqContext is a wrapper on top of CanvasRenderingContext2D
  */
@@ -56,12 +77,12 @@ export default class CanvasqContext implements ICanvasqContext {
    * The original canvas context with hooks to canvasqContext
    */
   public context: CanvasRenderingContext2D
+  public hiddenContext: CanvasRenderingContext2D
   /**
    * A hidden canvas that renders different colors for different
    * elements drawn on the main canvas
    */
   private hiddenCanvas: HTMLCanvasElement
-  private hiddenContext: CanvasRenderingContext2D
   private rootCanvasqElementCollection: ICanvasqElementCollection
   private canvasqElementCount: number
   private isElementQueueDirty: boolean
@@ -253,12 +274,16 @@ export default class CanvasqContext implements ICanvasqContext {
   // }
 
   private getNextElementKey(): string {
-    const highMultiply = 255 * 255
-    const lowMultiply = 255
-    const count: number = ++this.canvasqElementCount
-    const r = Math.floor(count / highMultiply)
-    const g = Math.floor((count - r * highMultiply) / lowMultiply)
-    const b = (count - r * highMultiply - g * lowMultiply)
+    // const highMultiply = 255 * 255
+    // const lowMultiply = 255
+    // const count: number = ++this.canvasqElementCount
+    // const r = Math.floor(count / highMultiply)
+    // const g = Math.floor((count - r * highMultiply) / lowMultiply)
+    // const b = (count - r * highMultiply - g * lowMultiply)
+
+    const r = Math.floor(Math.random() * 255)
+    const g = Math.floor(Math.random() * 255)
+    const b = Math.floor(Math.random() * 255)
 
     return `${r}-${g}-${b}`
   }
@@ -285,16 +310,22 @@ export default class CanvasqContext implements ICanvasqContext {
     // TODO: create canvasq element only when it's necessary
     // Should allow consumer to manually define grouping
     const elementKey = this.getNextElementKey()
-    const rgb = CanvasqContext.convertElementKeyToRgb(elementKey)
+    // const contextState: {[key: string]: string} = {}
+    // const context: {[key: string]: any} = this.context
+    // for (const stateKey of listOfContextStateKey) {
+    //   contextState[stateKey] = context[stateKey]
+    // }
     const newCanvasqElement = new CanvasqElement(elementKey, {
       canvasqContext: this,
+      // contextState,
     })
     this.rootCanvasqElementCollection.add(newCanvasqElement)
     
     for (const collectionKey of this.activeCollectionKeys) {
-      newCanvasqElement.addToCollection(collectionKey)
+      this.addToCollection(collectionKey, newCanvasqElement)
     }
 
+    const rgb = CanvasqContext.convertElementKeyToRgb(elementKey)
     this.executeOnHiddenContext(methodName, args, {
       fillStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,
       strokeStyle: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`,
